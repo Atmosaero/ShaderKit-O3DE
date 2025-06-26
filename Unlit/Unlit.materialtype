@@ -1,5 +1,5 @@
 {
-    "description": "Renders a model unlit with a single suface color value.",
+    "description": "Renders a model unlit with a single surface color value.",
     "version": 3,
 	"shaders": [
         {
