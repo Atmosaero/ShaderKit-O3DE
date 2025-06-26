@@ -1,0 +1,31 @@
+{
+    "description": "Renders a model unlit with a single suface color value.",
+    "version": 3,
+    "shaders": [
+        {
+            "file": "./Unlit.shader"
+        }
+    ],
+    "propertyLayout": {
+        "groups": [
+            {
+                "id": "settings",
+                "displayName": "Settings"
+            }
+        ],
+        "properties": {
+            "settings": [
+                {
+                    "id": "color",
+                    "displayName": "Color",
+                    "type": "Color",
+                    "defaultValue": [ 0.5, 0.0, 0.5 ],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_unlitColor"
+                    }
+                }
+            ]
+        }
+    }
+}
