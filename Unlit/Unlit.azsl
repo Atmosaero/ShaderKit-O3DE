@@ -1,0 +1,45 @@
+#pragma once
+
+#include <viewsrg.srgi>
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
+#include <Atom/Features/SrgSemantics.azsli>
+
+partial ShaderResourceGroup ViewSrg : SRG_PerView
+{
+    float4x4 m_viewProjectionMatrix;
+}
+
+ShaderResourceGroup UnlitColorSrg : SRG_PerMaterial
+{
+    float3 m_unlitColor;
+}
+
+struct VertexShaderInput
+{
+    float3 m_position : POSITION;
+};
+
+struct VertexShaderOutput
+{
+    float4 m_position : SV_Position;
+};
+
+VertexShaderOutput MainVS(VertexShaderInput IN)
+{
+    VertexShaderOutput OUT;
+    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1)).xyz;
+    OUT.m_position = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));        
+    return OUT;
+}
+
+ForwardPassOutput MainPS(VertexShaderOutput IN)
+{
+    ForwardPassOutput OUT;
+
+    // standard ForwardPassOutput G-buffer layout
+    OUT.m_diffuseColor = float4(UnlitColorSrg::m_unlitColor, -1.0); // Subsurface scattering is disabled
+    OUT.m_specularColor = float4(0.0, 0.0, 0.0, 0.0);   // Disable specular lighting
+
+    return OUT;
+}
