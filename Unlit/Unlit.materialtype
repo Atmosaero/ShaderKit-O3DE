@@ -1,9 +1,12 @@
 {
     "description": "Renders a model unlit with a single suface color value.",
     "version": 3,
-    "shaders": [
+	"shaders": [
         {
             "file": "./Unlit.shader"
+        },
+        {
+            "file": "Shaders/Depth/DepthPass.shader"
         }
     ],
     "propertyLayout": {
