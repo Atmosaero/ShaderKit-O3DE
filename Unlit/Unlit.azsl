@@ -37,9 +37,8 @@ ForwardPassOutput MainPS(VertexShaderOutput IN)
 {
     ForwardPassOutput OUT;
 
-    // standard ForwardPassOutput G-buffer layout
-    OUT.m_diffuseColor = float4(UnlitColorSrg::m_unlitColor, -1.0); // Subsurface scattering is disabled
-    OUT.m_specularColor = float4(0.0, 0.0, 0.0, 0.0);   // Disable specular lighting
+    OUT.m_diffuseColor = float4(UnlitColorSrg::m_unlitColor, -1.0); 
+    OUT.m_specularColor = float4(0.0, 0.0, 0.0, 0.0); 
 
     return OUT;
 }
