@@ -1,0 +1,114 @@
+#pragma once
+
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
+#include <Atom/Features/SrgSemantics.azsli>
+
+ShaderResourceGroup ViewSrg : SRG_PerView
+{
+    float4x4 m_viewProjectionMatrix;
+    float4x4 m_viewMatrix;
+}
+
+ShaderResourceGroup ToonSrg : SRG_PerMaterial
+{
+    float3 m_baseColor;
+    float3 m_shadowColor;
+    float3 m_highlightColor;
+    float m_lightThreshold;
+    float m_smoothness;
+    float m_outlineWidth;
+    float3 m_outlineColor;
+}
+
+struct VertexShaderInput
+{
+    float3 m_position : POSITION;
+    float3 m_normal : NORMAL;
+};
+
+struct VertexShaderOutput
+{
+    float4 m_position : SV_Position;
+    float3 m_worldPos : TEXCOORD0;
+    float3 m_normal : TEXCOORD1;
+};
+
+VertexShaderOutput MainVS(VertexShaderInput IN)
+{
+    VertexShaderOutput OUT;
+    
+    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1)).xyz;
+    OUT.m_position = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
+    OUT.m_worldPos = worldPosition;
+    
+    OUT.m_normal = mul((float3x3)ObjectSrg::GetWorldMatrix(), IN.m_normal);
+    
+    return OUT;
+}
+
+VertexShaderOutput OutlineVS(VertexShaderInput IN)
+{
+    VertexShaderOutput OUT;
+    
+    float3 normal = mul((float3x3)ObjectSrg::GetWorldMatrix(), IN.m_normal);
+    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1)).xyz;
+    
+    float3 outlineOffset = normal * ToonSrg::m_outlineWidth;
+    float3 outlinePosition = worldPosition + outlineOffset;
+    
+    OUT.m_position = mul(ViewSrg::m_viewProjectionMatrix, float4(outlinePosition, 1.0));
+    OUT.m_worldPos = outlinePosition;
+    OUT.m_normal = normal;
+    
+    return OUT;
+}
+
+ForwardPassOutput MainPS(VertexShaderOutput IN)
+{
+    ForwardPassOutput OUT;
+    
+    float3 normal = normalize(IN.m_normal);
+    
+    float3 lightDir = normalize(float3(1, 1, 1));
+    
+    float NdotL = dot(normal, lightDir);
+    
+    float toonLight = smoothstep(ToonSrg::m_lightThreshold - ToonSrg::m_smoothness, 
+                                ToonSrg::m_lightThreshold + ToonSrg::m_smoothness, NdotL);
+    
+    float3 color;
+    if (toonLight > 0.8)
+    {
+        color = ToonSrg::m_highlightColor;
+    }
+    else if (toonLight > 0.3)
+    {
+        color = ToonSrg::m_baseColor;
+    }
+    else
+    {
+        color = ToonSrg::m_shadowColor;
+    }
+    
+    float3 viewDir = normalize(-ViewSrg::m_viewMatrix[3].xyz - IN.m_worldPos);
+    float rimLight = 1.0 - max(dot(normal, viewDir), 0.0);
+    rimLight = pow(rimLight, 3.0);
+    
+    color += rimLight * 0.1;
+    
+    OUT.m_diffuseColor = float4(color, 1.0);
+    OUT.m_specularColor = float4(0.0, 0.0, 0.0, 0.0);
+    
+    return OUT;
+}
+
+ForwardPassOutput OutlinePS(VertexShaderOutput IN)
+{
+    ForwardPassOutput OUT;
+    
+    OUT.m_diffuseColor = float4(ToonSrg::m_outlineColor, 1.0);
+    OUT.m_specularColor = float4(0.0, 0.0, 0.0, 0.0);
+    
+    return OUT;
+} 

@@ -1,0 +1,115 @@
+{
+    "description": "Toon Shading material with anime-style rendering",
+    "version": 3,
+    "shaders": [
+        {
+            "file": "./ToonOutline.shader"
+        },
+        {
+            "file": "./Toon.shader"
+        },
+		{
+            "file": "Shaders/Depth/DepthPass.shader"
+        }
+    ],
+    "propertyLayout": {
+        "groups": [
+            {
+                "id": "colors",
+                "displayName": "Colors"
+            },
+            {
+                "id": "lighting",
+                "displayName": "Lighting"
+            },
+            {
+                "id": "outline",
+                "displayName": "Outline"
+            }
+        ],
+        "properties": {
+            "colors": [
+                {
+                    "id": "baseColor",
+                    "displayName": "Base Color",
+                    "type": "Color",
+                    "defaultValue": [0.8, 0.8, 0.8],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_baseColor"
+                    }
+                },
+                {
+                    "id": "shadowColor",
+                    "displayName": "Shadow Color",
+                    "type": "Color",
+                    "defaultValue": [0.3, 0.3, 0.3],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_shadowColor"
+                    }
+                },
+                {
+                    "id": "highlightColor",
+                    "displayName": "Highlight Color",
+                    "type": "Color",
+                    "defaultValue": [1.0, 1.0, 1.0],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_highlightColor"
+                    }
+                }
+            ],
+            "lighting": [
+                {
+                    "id": "lightThreshold",
+                    "displayName": "Light Threshold",
+                    "type": "Float",
+                    "defaultValue": 0.5,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_lightThreshold"
+                    }
+                },
+                {
+                    "id": "smoothness",
+                    "displayName": "Smoothness",
+                    "type": "Float",
+                    "defaultValue": 0.1,
+                    "min": 0.0,
+                    "max": 0.5,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_smoothness"
+                    }
+                }
+            ],
+            "outline": [
+                {
+                    "id": "outlineWidth",
+                    "displayName": "Outline Width",
+                    "type": "Float",
+                    "defaultValue": 0.02,
+                    "min": 0.0,
+                    "max": 0.1,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_outlineWidth"
+                    }
+                },
+                {
+                    "id": "outlineColor",
+                    "displayName": "Outline Color",
+                    "type": "Color",
+                    "defaultValue": [0.0, 0.0, 0.0],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_outlineColor"
+                    }
+                }
+            ]
+        }
+    }
+} 
