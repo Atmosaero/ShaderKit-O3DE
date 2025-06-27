@@ -1,0 +1,80 @@
+{
+    "description": "Material type for Wireframe shader with glowing grid effect",
+    "version": 3,
+    "shaders": [
+        {
+            "file": "./Wireframe.shader"
+        },
+        {
+            "file": "Shaders/Depth/DepthPass.shader"
+        }
+    ],
+    "propertyLayout": {
+        "groups": [
+            {
+                "id": "settings",
+                "displayName": "Settings"
+            }
+        ],
+        "properties": {
+            "settings": [
+                {
+                    "id": "gridColor",
+                    "displayName": "Grid Color",
+                    "type": "Color",
+                    "defaultValue": [0.0, 1.0, 1.0],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_gridColor"
+                    }
+                },
+                {
+                    "id": "gridThickness",
+                    "displayName": "Grid Thickness",
+                    "type": "Float",
+                    "defaultValue": 0.05,
+                    "min": 0.01,
+                    "max": 0.2,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_gridThickness"
+                    }
+                },
+                {
+                    "id": "glowStrength",
+                    "displayName": "Glow Strength",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 2.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_glowStrength"
+                    }
+                },
+                {
+                    "id": "gridScale",
+                    "displayName": "Grid Scale",
+                    "type": "Float",
+                    "defaultValue": 8.0,
+                    "min": 1.0,
+                    "max": 20.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_gridScale"
+                    }
+                },
+                {
+                    "id": "baseColor",
+                    "displayName": "Base Color",
+                    "type": "Color",
+                    "defaultValue": [0.05, 0.05, 0.1],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_baseColor"
+                    }
+                }
+            ]
+        }
+    }
+} 

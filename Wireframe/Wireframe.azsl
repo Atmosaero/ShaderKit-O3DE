@@ -1,0 +1,89 @@
+#pragma once
+
+#include <viewsrg.srgi>
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
+#include <Atom/Features/SrgSemantics.azsli>
+
+partial ShaderResourceGroup ViewSrg : SRG_PerView
+{
+    float4x4 m_viewProjectionMatrix;
+}
+
+ShaderResourceGroup WireframeSrg : SRG_PerMaterial
+{
+    float3 m_gridColor;
+    float m_gridThickness;
+    float m_glowStrength;
+    float m_gridScale;
+    float3 m_baseColor;
+}
+
+struct VertexShaderInput
+{
+    float3 m_position : POSITION;
+    float3 m_normal : NORMAL;
+};
+
+struct VertexShaderOutput
+{
+    float4 m_position : SV_Position;
+    float3 m_objectPos : TEXCOORD0;  
+    float3 m_worldPos : TEXCOORD1;   
+    float3 m_normal : TEXCOORD2;
+};
+
+VertexShaderOutput MainVS(VertexShaderInput IN)
+{
+    VertexShaderOutput OUT;
+    
+    OUT.m_objectPos = IN.m_position;
+    
+    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1)).xyz;
+    OUT.m_position = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
+    OUT.m_worldPos = worldPosition;
+    OUT.m_normal = mul((float3x3)ObjectSrg::GetWorldMatrix(), IN.m_normal);
+    
+    return OUT;
+}
+
+ForwardPassOutput MainPS(VertexShaderOutput IN)
+{
+    ForwardPassOutput OUT;
+    
+    float3 absNormal = abs(normalize(IN.m_normal));
+    float maxComponent = max(max(absNormal.x, absNormal.y), absNormal.z);
+    
+    float2 gridPos;
+    if (absNormal.x > absNormal.y && absNormal.x > absNormal.z)
+    {
+        gridPos = IN.m_objectPos.yz;
+    }
+    else if (absNormal.y > absNormal.z)
+    {
+        gridPos = IN.m_objectPos.xz;
+    }
+    else
+    {
+        gridPos = IN.m_objectPos.xy;
+    }
+    
+    gridPos *= WireframeSrg::m_gridScale;
+    
+    float lineX = abs(frac(gridPos.x) - 0.5);
+    float lineY = abs(frac(gridPos.y) - 0.5);
+    float dist = min(lineX, lineY);
+    
+    float glow = 1.0 - smoothstep(WireframeSrg::m_gridThickness * 0.3, WireframeSrg::m_gridThickness + 0.1, dist);
+    
+    glow = pow(glow, 0.3); 
+    
+    float3 color = lerp(WireframeSrg::m_baseColor, WireframeSrg::m_gridColor, glow * WireframeSrg::m_glowStrength);
+    
+    float3 emission = WireframeSrg::m_gridColor * glow * glow * glow * WireframeSrg::m_glowStrength * 2.0;
+    
+    OUT.m_diffuseColor = float4(color, -1.0); 
+    OUT.m_specularColor = float4(emission, 1.0); 
+    
+    return OUT;
+} 
