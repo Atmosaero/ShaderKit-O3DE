@@ -1,5 +1,5 @@
 {
-    "description": "Toon Shading material with anime-style rendering",
+    "description": "Creates a flat, cartoon-like look with solid color bands and sharp outlines",
     "version": 3,
     "shaders": [
         {
