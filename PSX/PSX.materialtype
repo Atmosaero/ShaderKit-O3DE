@@ -1,0 +1,158 @@
+{
+  "description": "PSX-style material.",
+  "version": 3,
+  "shaders": [
+    { "file": "./PSX.shader" },
+    { "file": "./PSX_Depth.shader" },
+    { "file": "./PSX_Shadow.shader" }
+  ],
+  "propertyLayout": {
+    "groups": [
+      { "id": "basicSettings", "displayName": "Basic Settings" },
+      { "id": "textures", "displayName": "Textures" },
+      { "id": "dither", "displayName": "Dithering" },
+      { "id": "lighting", "displayName": "Lighting" }
+    ],
+    "properties": {
+      "basicSettings": [
+        {
+          "id": "color",
+          "displayName": "Color",
+          "type": "Color",
+          "defaultValue": [ 1.0, 1.0, 1.0 ],
+          "connection": { "type": "ShaderInput", "id": "m_psxColor" }
+        },
+        {
+          "id": "jitterStrength",
+          "displayName": "Vertex Snapping",
+          "type": "Float",
+          "defaultValue": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "connection": { "type": "ShaderInput", "id": "m_jitterStrength" }
+        },
+        {
+          "id": "uvPixelization",
+          "displayName": "UV Pixelization",
+          "type": "Float",
+          "defaultValue": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "connection": { "type": "ShaderInput", "id": "m_uvPixelization" }
+        },
+        {
+          "id": "affineTextureMapping",
+          "displayName": "Affine Texture Mapping",
+          "type": "Bool",
+          "defaultValue": false,
+          "connection": { "type": "ShaderInput", "id": "m_affineTextureMapping" }
+        },
+        {
+          "id": "affineStrength",
+          "displayName": "Affine Strength",
+          "type": "Float",
+          "defaultValue": 0.5,
+          "min": 0.0,
+          "max": 1.0,
+          "connection": { "type": "ShaderInput", "id": "m_affineStrength" }
+        }
+      ],
+      "textures": [
+        {
+          "id": "baseColorTexture",
+          "displayName": "Base Color Texture",
+          "type": "Image",
+          "connection": { "type": "ShaderInput", "id": "m_baseColor" }
+        }
+      ],
+      "dither": [
+        {
+          "id": "ditherStrength",
+          "displayName": "Dither Strength",
+          "type": "Float",
+          "defaultValue": 0.0,
+          "min": 0.0,
+          "max": 2.0,
+          "connection": { "type": "ShaderInput", "id": "m_ditherStrength" }
+        },
+        {
+          "id": "ditherGamma",
+          "displayName": "Dither Gamma",
+          "type": "Float",
+          "defaultValue": 2.2,
+          "min": 0.5,
+          "max": 3.0,
+          "connection": { "type": "ShaderInput", "id": "m_ditherGamma" }
+        }
+      ],
+      "lighting": [
+        {
+          "id": "enableShadows",
+          "displayName": "Enable Shadows",
+          "description": "Whether to use the shadow maps.",
+          "type": "Bool",
+          "defaultValue": true,
+          "connection": {
+            "type": "ShaderOption",
+            "id": "o_enableShadows"
+          }
+        },
+        {
+          "id": "receiveShadows",
+          "displayName": "Receive Shadows",
+          "description": "Whether this material should receive shadows from lights.",
+          "type": "Bool",
+          "defaultValue": true,
+          "connection": {
+            "type": "ShaderOption",
+            "id": "o_receiveShadows"
+          }
+        },
+        {
+          "id": "enableDirectionalLights",
+          "displayName": "Enable Directional Lights",
+          "description": "Whether to use directional lights.",
+          "type": "Bool",
+          "defaultValue": true,
+          "connection": {
+            "type": "ShaderOption",
+            "id": "o_enableDirectionalLights"
+          }
+        },
+        {
+          "id": "enablePunctualLights",
+          "displayName": "Enable Punctual Lights",
+          "description": "Whether to use punctual lights (Point, Spot).",
+          "type": "Bool",
+          "defaultValue": true,
+          "connection": {
+            "type": "ShaderOption",
+            "id": "o_enablePunctualLights"
+          }
+        },
+        {
+          "id": "enableAreaLights",
+          "displayName": "Enable Area Lights",
+          "description": "Whether to use area lights (Disk, Capsule, Quad, Polygon).",
+          "type": "Bool",
+          "defaultValue": true,
+          "connection": {
+            "type": "ShaderOption",
+            "id": "o_enableAreaLights"
+          }
+        },
+        {
+          "id": "enableIBL",
+          "displayName": "Enable IBL",
+          "description": "Whether to use Image Based Lighting (IBL).",
+          "type": "Bool",
+          "defaultValue": true,
+          "connection": {
+            "type": "ShaderOption",
+            "id": "o_enableIBL"
+          }
+        }
+      ]
+    }
+  }
+}

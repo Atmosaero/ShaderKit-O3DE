@@ -1,0 +1,68 @@
+#pragma once
+
+#include <viewsrg.srgi>
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/SrgSemantics.azsli>
+
+partial ShaderResourceGroup ViewSrg : SRG_PerView
+{
+    float4x4 m_viewProjectionMatrix;
+    float2 m_viewportSize;
+}
+
+ShaderResourceGroup PSXColorSrg : SRG_PerMaterial
+{
+    float3 m_psxColor;
+    float m_jitterStrength;
+    float m_uvPixelization;
+    Texture2D m_baseColor;
+    Sampler m_baseColorSampler
+    {
+        MaxAnisotropy = 1;
+        MinFilter = Point;
+        MagFilter = Point;
+        MipFilter = Point;
+        ReductionType = Filter;
+        AddressU = Wrap;
+        AddressV = Wrap;
+        AddressW = Wrap;
+        MinLOD = 0.000000;
+        MaxLOD = 15.000000;
+        MipLODBias = 0.000000;
+        BorderColor = TransparentBlack;
+    };
+    float m_ditherStrength;
+    float m_ditherGamma;
+    bool  m_affineTextureMapping;
+    float m_affineStrength;
+}
+
+struct VSIn
+{
+    float3 m_position : POSITION;
+};
+
+struct VSOut
+{
+    float4 m_position : SV_Position;
+};
+
+VSOut MainVS(VSIn IN)
+{
+    VSOut OUT;
+    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1)).xyz;
+    float4 clipPosition = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
+    
+    if (PSXColorSrg::m_jitterStrength > 0.0)
+    {
+        const float baseGridSize = 0.001;
+        const float maxGridSize = 0.05;
+        const float gridSize = baseGridSize + PSXColorSrg::m_jitterStrength * PSXColorSrg::m_jitterStrength * maxGridSize;
+        
+        clipPosition.x = round(clipPosition.x / gridSize) * gridSize;
+        clipPosition.y = round(clipPosition.y / gridSize) * gridSize;
+    }
+    
+    OUT.m_position = clipPosition;
+    return OUT;
+}

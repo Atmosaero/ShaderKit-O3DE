@@ -1,0 +1,292 @@
+#pragma once
+
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
+#include <Atom/Features/SrgSemantics.azsli>
+
+#define FORCE_OPAQUE 1
+#define ENABLE_SHADOWS 1
+#define ENABLE_TRANSMISSION 0
+#define ENABLE_CLEAR_COAT 0
+#define FORCE_IBL_IN_FORWARD_PASS 1
+#include <Atom/Features/Pipeline/Forward/ForwardPassSrg.azsli>
+#include <Atom/Features/PBR/Lighting/StandardLighting.azsli>
+#include <Atom/Features/PBR/Lights/Lights.azsli>
+#include <Atom/Features/PBR/Lights/IblForward.azsli>
+#include <Atom/Features/Shadow/DirectionalLightShadow.azsli>
+#include <Atom/Features/Shadow/ProjectedShadow.azsli>
+
+option bool o_receiveShadows = true;
+
+ShaderResourceGroup VariantFallbackSrg : SRG_PerDraw
+{
+}
+
+ShaderResourceGroup PSXColorSrg : SRG_PerMaterial
+{
+    float3 m_psxColor;
+    float m_jitterStrength;
+    float m_uvPixelization;
+    Texture2D m_baseColor;
+    Sampler m_baseColorSampler
+    {
+        MaxAnisotropy = 1;
+        MinFilter = Point;
+        MagFilter = Point;
+        MipFilter = Point;
+        ReductionType = Filter;
+        AddressU = Wrap;
+        AddressV = Wrap;
+        AddressW = Wrap;
+        MinLOD = 0.000000;
+        MaxLOD = 15.000000;
+        MipLODBias = 0.000000;
+        BorderColor = TransparentBlack;
+    };
+    float m_ditherStrength;
+    float m_ditherGamma;
+    bool  m_affineTextureMapping;
+    float m_affineStrength;
+}
+
+struct VertexShaderInput
+{
+    float3 m_position : POSITION;
+    float2 m_uv : UV0;
+    float3 m_normal : NORMAL;
+};
+
+struct VertexShaderOutput
+{
+    float4 m_position : SV_Position;
+    float2 m_uvPersp  : TEXCOORD1;
+    noperspective float2 m_uvAffine : TEXCOORD2;
+    float  m_clipW : TEXCOORD3;
+    float3 m_worldNormal : TEXCOORD4;
+    float3 m_worldPos : TEXCOORD5;
+    float3 m_vertexLighting : TEXCOORD6;
+};
+
+VertexShaderOutput MainVS(VertexShaderInput IN)
+{
+    VertexShaderOutput OUT;
+    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1)).xyz;
+    float4 clipPosition = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
+    
+    if (PSXColorSrg::m_jitterStrength > 0.0)
+    {
+        const float baseGridSize = 0.001;
+        const float maxGridSize = 0.05;
+        const float gridSize = baseGridSize + PSXColorSrg::m_jitterStrength * PSXColorSrg::m_jitterStrength * maxGridSize;
+        
+        clipPosition.x = round(clipPosition.x / gridSize) * gridSize;
+        clipPosition.y = round(clipPosition.y / gridSize) * gridSize;
+    }
+    
+    OUT.m_position = clipPosition;
+    OUT.m_clipW    = clipPosition.w;
+    OUT.m_uvPersp  = IN.m_uv;
+    OUT.m_uvAffine = IN.m_uv;
+    float3 wn = mul((float3x3)ObjectSrg::GetWorldMatrix(), IN.m_normal);
+    OUT.m_worldNormal = normalize(wn);
+    OUT.m_worldPos = worldPosition;
+    
+    float3 vertexLighting = float3(0.0, 0.0, 0.0);
+    
+    if (SceneSrg::m_directionalLightCount > 0) {
+        DirectionalLight light = SceneSrg::m_directionalLights[0];
+        float3 lightDir = -light.m_direction;
+        float ndotl = max(0.0, dot(OUT.m_worldNormal, lightDir));
+        vertexLighting += light.m_rgbIntensityLux * ndotl * 0.1;
+    }
+
+    for (uint i = 0; i < ViewSrg::m_simplePointLightCount; i++) {
+        SimplePointLight light = ViewSrg::m_simplePointLights[i];
+        float3 lightDir = normalize(light.m_position - OUT.m_worldPos);
+        float ndotl = max(0.0, dot(OUT.m_worldNormal, lightDir));
+        float distance = length(light.m_position - OUT.m_worldPos);
+        float attenuation = 1.0 / (1.0 + light.m_invAttenuationRadiusSquared * distance * distance);
+        vertexLighting += light.m_rgbIntensityCandelas * ndotl * attenuation * 0.02;
+    }
+
+    for (uint i = 0; i < ViewSrg::m_pointLightCount; i++) {
+        PointLight light = ViewSrg::m_pointLights[i];
+        float3 lightDir = normalize(light.m_position - OUT.m_worldPos);
+        float ndotl = max(0.0, dot(OUT.m_worldNormal, lightDir));
+        float distance = length(light.m_position - OUT.m_worldPos);
+        float attenuation = 1.0 / (1.0 + light.m_invAttenuationRadiusSquared * distance * distance);
+        vertexLighting += light.m_rgbIntensityCandelas * ndotl * attenuation * 0.02;
+    }
+
+    for (uint i = 0; i < ViewSrg::m_simpleSpotLightCount; i++) {
+        SimpleSpotLight light = ViewSrg::m_simpleSpotLights[i];
+        float3 lightDir = normalize(light.m_position - OUT.m_worldPos);
+        float ndotl = max(0.0, dot(OUT.m_worldNormal, lightDir));
+        float distance = length(light.m_position - OUT.m_worldPos);
+        float attenuation = 1.0 / (1.0 + light.m_invAttenuationRadiusSquared * distance * distance);
+        float cosAngle = dot(-lightDir, light.m_direction);
+        float spotEffect = smoothstep(light.m_cosOuterConeAngle, light.m_cosInnerConeAngle, cosAngle);
+        vertexLighting += light.m_rgbIntensityCandelas * ndotl * attenuation * spotEffect * 0.02;
+    }
+
+    for (uint i = 0; i < ViewSrg::m_diskLightCount; i++) {
+        DiskLight light = ViewSrg::m_diskLights[i];
+        float3 lightDir = normalize(light.m_position - OUT.m_worldPos);
+        float ndotl = max(0.0, dot(OUT.m_worldNormal, lightDir));
+        float distance = length(light.m_position - OUT.m_worldPos);
+        float attenuation = 1.0 / (1.0 + light.m_invAttenuationRadiusSquared * distance * distance);
+        float cosAngle = dot(-lightDir, light.m_direction);
+        float spotEffect = smoothstep(light.m_cosOuterConeAngle, light.m_cosInnerConeAngle, cosAngle);
+        vertexLighting += light.m_rgbIntensityCandelas * ndotl * attenuation * spotEffect * 0.02;
+    }
+    
+    OUT.m_vertexLighting = vertexLighting;
+    
+    return OUT;
+}
+
+ForwardPassOutput MainPS(VertexShaderOutput IN)
+{
+    ForwardPassOutput OUT;
+    float2 uv_persp  = IN.m_uvPersp;
+    float2 uv_affine = IN.m_uvAffine;
+    float enabled = PSXColorSrg::m_affineTextureMapping ? 1.0 : 0.0;
+    float w       = max(IN.m_clipW, 1e-6);
+    float wGrad   = length(float2(ddx(w), ddy(w)));
+    float atten   = saturate(1.0 - smoothstep(0.02, 0.10, wGrad));
+    float blend   = enabled * saturate(PSXColorSrg::m_affineStrength) * atten;
+    float2 uv = lerp(uv_persp, uv_affine, blend);
+
+    float3 base = PSXColorSrg::m_psxColor;
+    float4 tex = PSXColorSrg::m_baseColor.Sample(PSXColorSrg::m_baseColorSampler, uv);
+    if (tex.a > 0.0)
+    {
+        base = tex.rgb * PSXColorSrg::m_psxColor;
+    }
+
+    if (PSXColorSrg::m_uvPixelization > 0.0)
+    {
+        float2 textureSize;
+        PSXColorSrg::m_baseColor.GetDimensions(textureSize.x, textureSize.y);
+        float pixelSize = 1.0 + PSXColorSrg::m_uvPixelization * 31.0;
+        
+        float2 uvPix = round(uv * textureSize / pixelSize) * pixelSize / textureSize;
+        float4 texPix = PSXColorSrg::m_baseColor.Sample(PSXColorSrg::m_baseColorSampler, uvPix);
+        if (texPix.a > 0.0)
+        {
+            base = texPix.rgb * PSXColorSrg::m_psxColor;
+        }
+    }
+    else
+    {
+        float2 textureSize;
+        PSXColorSrg::m_baseColor.GetDimensions(textureSize.x, textureSize.y);
+        float2 uvPix = round(uv * textureSize) / textureSize;
+        float4 texPix = PSXColorSrg::m_baseColor.Sample(PSXColorSrg::m_baseColorSampler, uvPix);
+        if (texPix.a > 0.0)
+        {
+            base = texPix.rgb * PSXColorSrg::m_psxColor;
+        }
+    }
+
+    Surface surface;
+    surface.position = IN.m_worldPos;
+    surface.normal = normalize(IN.m_worldNormal);
+    surface.vertexNormal = surface.normal;
+    surface.metallic = 0.0;
+    surface.roughnessLinear = 1.0;
+    surface.CalculateRoughnessA();
+    surface.opacityAffectsSpecularFactor = 1.0;
+    surface.opacityAffectsEmissiveFactor = 1.0;
+    surface.SetAlbedoAndSpecularF0(base, 0.0, surface.metallic);
+
+    LightingData lightingData;
+#if ENABLE_LIGHT_CULLING
+    lightingData.tileIterator.Init(IN.m_position, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
+#else
+    lightingData.tileIterator.InitNoCulling();
+#endif
+    lightingData.Init(surface.position, surface.GetDefaultNormal(), surface.roughnessLinear, ViewSrg::m_worldPosition);
+    lightingData.lightingChannels = ObjectSrg::m_lightingChannelMask;
+    
+    lightingData.diffuseResponse = 1.0;
+    lightingData.specularResponse = 0.0;
+    
+    float3 totalLighting = IN.m_vertexLighting;
+    
+    if (SceneSrg::m_directionalLightCount > 0 && o_enableShadows && o_receiveShadows && ViewSrg::m_shadowIndexDirectionalLight < SceneSrg::m_directionalLightCount) {
+        float shadowFactor = DirectionalLightShadow::GetVisibility(ViewSrg::m_shadowIndexDirectionalLight, surface.position, surface.vertexNormal, IN.m_position);
+        totalLighting *= shadowFactor;
+    }
+
+    for (uint i = 0; i < ViewSrg::m_pointLightCount; i++) {
+        PointLight light = ViewSrg::m_pointLights[i];
+        if (o_enableShadows && o_receiveShadows) {
+            float3 lightDir = normalize(light.m_position - surface.position);
+            const uint shadowIndex = ComputeShadowIndex(light, surface);
+            float shadowFactor = ProjectedShadow::GetVisibility(shadowIndex, light.m_position, IN.m_worldPos, lightDir, surface.vertexNormal);
+            totalLighting *= shadowFactor;
+        }
+    }
+
+    for (uint i = 0; i < ViewSrg::m_simpleSpotLightCount; i++) {
+        SimpleSpotLight light = ViewSrg::m_simpleSpotLights[i];
+        if (o_enableShadows && o_receiveShadows) {
+            float3 lightDir = normalize(light.m_position - surface.position);
+            float shadowFactor = ProjectedShadow::GetVisibility(light.m_shadowIndex, light.m_position, IN.m_worldPos, lightDir, surface.vertexNormal);
+            totalLighting *= shadowFactor;
+        }
+    }
+
+    for (uint i = 0; i < ViewSrg::m_diskLightCount; i++) {
+        DiskLight light = ViewSrg::m_diskLights[i];
+        if (o_enableShadows && o_receiveShadows) {
+            float3 lightDir = normalize(light.m_position - surface.position);
+            float shadowFactor = ProjectedShadow::GetVisibility(light.m_shadowIndex, light.m_position, IN.m_worldPos, lightDir, surface.vertexNormal);
+            totalLighting *= shadowFactor;
+        }
+    }
+
+
+    
+    lightingData.diffuseLighting = totalLighting;
+    
+    ApplyIblForward(surface, lightingData);
+    lightingData.FinalizeLighting();
+    
+    lightingData.diffuseLighting *= 1.8;
+
+    if (PSXColorSrg::m_ditherStrength > 0.0)
+    {
+        int mat4x4[16] = { -4, 0, -3, 1, 2, -2, 3, -1, -3, 1, -4, 0, 3, -1, 2, -2 };
+        int2 ip = int2(int(IN.m_position.x) & 3, int(IN.m_position.y) & 3);
+        int idx = ip.x + (ip.y << 2);
+        float noise = float(mat4x4[idx]) * PSXColorSrg::m_ditherStrength;
+        float gamma = max(PSXColorSrg::m_ditherGamma, 0.0001);
+        float invGamma = 1.0 / gamma;
+        float3 srgb = pow(base, invGamma);
+        float3 q = round(srgb * 255.0 + noise);
+        q = clamp(q, 0.0, 255.0);
+        q = clamp(q / 8.0, 0.0, 31.0);
+        q = q / 31.0;
+        base = pow(q, gamma);
+        surface.SetAlbedoAndSpecularF0(base, 1.0, surface.metallic);
+    }
+
+    OUT.m_diffuseColor.rgb = lightingData.diffuseLighting * surface.albedo;
+    OUT.m_diffuseColor.a = -1.0;
+    
+    OUT.m_specularColor.rgb = float3(0.0, 0.0, 0.0);
+    OUT.m_specularColor.a = 1.0;
+    
+    OUT.m_albedo.rgb = surface.albedo * lightingData.diffuseResponse * lightingData.diffuseAmbientOcclusion;
+    OUT.m_albedo.a = lightingData.specularOcclusion;
+    
+    OUT.m_specularF0.rgb = surface.GetSpecularF0();
+    OUT.m_specularF0.a = surface.roughnessLinear;
+    
+    OUT.m_normal.rgb = EncodeNormalSignedOctahedron(surface.GetDefaultNormal());
+    OUT.m_normal.a = 0.0;
+    
+    return OUT;
+}

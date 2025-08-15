@@ -1,0 +1,42 @@
+#pragma once
+
+#include <viewsrg_all.srgi>
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+
+ShaderResourceGroup PSXColorSrg : SRG_PerMaterial
+{
+    float3 m_psxColor;
+    float m_jitterStrength;
+    float m_uvPixelization;
+    Texture2D m_baseColor;
+    Sampler m_baseColorSampler
+    {
+        MaxAnisotropy = 1;
+        MinFilter = Point;
+        MagFilter = Point;
+        MipFilter = Point;
+        ReductionType = Filter;
+        AddressU = Wrap;
+        AddressV = Wrap;
+        AddressW = Wrap;
+        MinLOD = 0.000000;
+        MaxLOD = 15.000000;
+        MipLODBias = 0.000000;
+        BorderColor = TransparentBlack;
+    };
+    float m_ditherStrength;
+    float m_ditherGamma;
+    bool  m_affineTextureMapping;
+    float m_affineStrength;
+}
+
+struct VSIn { float3 m_position : POSITION; };
+struct VSOut { precise float4 m_position : SV_Position; };
+
+VSOut MainVS(VSIn IN)
+{
+    VSOut OUT;
+    float4 worldPos = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1.0));
+    OUT.m_position = mul(ViewSrg::m_viewProjectionMatrix, worldPos);
+    return OUT;
+}
