@@ -3,6 +3,9 @@
     "version": 3,
     "shaders": [
         {
+            "file": "./ToonOutline_Depth.shader"
+        },
+        {
             "file": "./ToonOutline.shader"
         },
         {

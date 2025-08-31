@@ -111,4 +111,11 @@ ForwardPassOutput OutlinePS(VertexShaderOutput IN)
     OUT.m_specularColor = float4(0.0, 0.0, 0.0, 0.0);
     
     return OUT;
+}
+
+// Depth pass for outline
+float4 OutlineDepthPS(VertexShaderOutput IN) : SV_Target0
+{
+    // Return depth value for outline
+    return float4(IN.m_position.z / IN.m_position.w, 0.0, 0.0, 0.0);
 } 
