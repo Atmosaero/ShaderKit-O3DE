@@ -1,0 +1,117 @@
+{
+    "description": "Stylized water material inspired by Wind Waker.",
+    "version": 3,
+    "shaders": [
+        {
+            "file": "./StylizedWater.shader"
+        }
+    ],
+    "propertyLayout": {
+        "groups": [
+            {
+                "id": "colors",
+                "displayName": "Colors"
+            },
+            {
+                "id": "waves",
+                "displayName": "Waves"
+            }
+        ],
+        "properties": {
+            "colors": [
+                {
+                    "id": "waterColor",
+                    "displayName": "Water Color",
+                    "type": "Color",
+                    "defaultValue": [ 0.04, 0.38, 0.88 ],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_waterColor"
+                    }
+                },
+                {
+                    "id": "waterColor2",
+                    "displayName": "Water Color 2",
+                    "type": "Color",
+                    "defaultValue": [ 0.04, 0.35, 0.78 ],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_waterColor2"
+                    }
+                },
+                {
+                    "id": "foamColor",
+                    "displayName": "Foam Color",
+                    "type": "Color",
+                    "defaultValue": [ 0.8125, 0.9609, 0.9648 ],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_foamColor"
+                    }
+                },
+                {
+                    "id": "waterAlpha",
+                    "displayName": "Water Alpha",
+                    "type": "Float",
+                    "defaultValue": 0.8,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_waterAlpha"
+                    }
+                }
+            ],
+            "waves": [
+                {
+                    "id": "waveSpeed",
+                    "displayName": "Wave Speed",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_waveSpeed"
+                    }
+                },
+                {
+                    "id": "waveScale",
+                    "displayName": "Wave Scale",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_waveScale"
+                    }
+                },
+                {
+                    "id": "waveAmplitude",
+                    "displayName": "Wave Amplitude",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_waveAmplitude"
+                    }
+                },
+                {
+                    "id": "distortionSpeed",
+                    "displayName": "Distortion Speed",
+                    "type": "Float",
+                    "defaultValue": 2.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_distortionSpeed"
+                    }
+                },
+                {
+                    "id": "tile",
+                    "displayName": "Tile",
+                    "type": "Vector2",
+                    "defaultValue": [ 8.0, 8.0 ],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_tile"
+                    }
+                }
+            ]
+        }
+    }
+}
