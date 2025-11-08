@@ -4,9 +4,6 @@
     "shaders": [
         {
             "file": "./Wireframe.shader"
-        },
-        {
-            "file": "Shaders/Depth/DepthPass.shader"
         }
     ],
     "propertyLayout": {
@@ -22,7 +19,7 @@
                     "id": "gridColor",
                     "displayName": "Grid Color",
                     "type": "Color",
-                    "defaultValue": [0.0, 1.0, 1.0],
+                    "defaultValue": [0.0, 0.0, 0.0],
                     "connection": {
                         "type": "ShaderInput",
                         "id": "m_gridColor"
@@ -50,28 +47,6 @@
                     "connection": {
                         "type": "ShaderInput",
                         "id": "m_glowStrength"
-                    }
-                },
-                {
-                    "id": "gridScale",
-                    "displayName": "Grid Scale",
-                    "type": "Float",
-                    "defaultValue": 8.0,
-                    "min": 1.0,
-                    "max": 20.0,
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_gridScale"
-                    }
-                },
-                {
-                    "id": "baseColor",
-                    "displayName": "Base Color",
-                    "type": "Color",
-                    "defaultValue": [0.05, 0.05, 0.1],
-                    "connection": {
-                        "type": "ShaderInput",
-                        "id": "m_baseColor"
                     }
                 }
             ]
