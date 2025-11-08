@@ -1,7 +1,13 @@
 #pragma once
 
+#include <scenesrg_all.srgi>
 #include <viewsrg_all.srgi>
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/InstancedTransforms.azsli>
+
+ShaderResourceGroup PSXShadowDrawSrg : SRG_PerDraw
+{
+}
 
 ShaderResourceGroup PSXColorSrg : SRG_PerMaterial
 {
@@ -33,10 +39,10 @@ ShaderResourceGroup PSXColorSrg : SRG_PerMaterial
 struct VSIn { float3 m_position : POSITION; };
 struct VSOut { precise float4 m_position : SV_Position; };
 
-VSOut MainVS(VSIn IN)
+VSOut MainVS(VSIn IN, uint instanceId : SV_InstanceID)
 {
     VSOut OUT;
-    float4 worldPos = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1.0));
+    float4 worldPos = mul(GetObjectToWorldMatrix(instanceId), float4(IN.m_position, 1.0));
     OUT.m_position = mul(ViewSrg::m_viewProjectionMatrix, worldPos);
     return OUT;
 }
