@@ -1,13 +1,13 @@
 #pragma once
 
-#include <viewsrg.srgi>
+#include <scenesrg_all.srgi>
+#include <viewsrg_all.srgi>
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/InstancedTransforms.azsli>
 #include <Atom/Features/SrgSemantics.azsli>
 
-partial ShaderResourceGroup ViewSrg : SRG_PerView
+ShaderResourceGroup PSXDepthDrawSrg : SRG_PerDraw
 {
-    float4x4 m_viewProjectionMatrix;
-    float2 m_viewportSize;
 }
 
 ShaderResourceGroup PSXColorSrg : SRG_PerMaterial
@@ -47,11 +47,12 @@ struct VSOut
     float4 m_position : SV_Position;
 };
 
-VSOut MainVS(VSIn IN)
+VSOut MainVS(VSIn IN, uint instanceId : SV_InstanceID)
 {
     VSOut OUT;
-    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1)).xyz;
-    float4 clipPosition = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
+    float4x4 objectToWorld = GetObjectToWorldMatrix(instanceId);
+    float4 worldPosition4 = mul(objectToWorld, float4(IN.m_position, 1));
+    float4 clipPosition = mul(ViewSrg::m_viewProjectionMatrix, worldPosition4);
     
     if (PSXColorSrg::m_jitterStrength > 0.0)
     {
