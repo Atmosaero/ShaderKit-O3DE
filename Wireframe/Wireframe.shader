@@ -4,8 +4,16 @@
     "DepthStencilState": {
         "Depth": {
             "Enable": true,
-            "CompareFunc": "GreaterEqual"
+            "CompareFunc": "GreaterEqual",
+            "writeMask": "Zero"
         }
+    },
+
+    "GlobalTargetBlendState": {
+        "Enable": true,
+        "BlendSource": "One",
+        "BlendDest": "AlphaSourceInverse",
+        "BlendOp": "Add"
     },
 
     "ProgramSettings": {
@@ -15,11 +23,15 @@
                 "type": "Vertex"
             },
             {
+                "name": "MainGS",
+                "type": "Geometry"
+            },
+            {
                 "name": "MainPS",
                 "type": "Fragment"
             }
         ]
     },
 
-    "DrawList": "forward"
+    "DrawList": "transparent"
 } 
