@@ -1,6 +1,9 @@
 #pragma once
 
+#include <scenesrg_all.srgi>
+#include <viewsrg_all.srgi>
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/InstancedTransforms.azsli>
 #include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
 #include <Atom/Features/SrgSemantics.azsli>
 
@@ -67,11 +70,13 @@ struct VertexShaderOutput
     float3 m_vertexLighting : TEXCOORD6;
 };
 
-VertexShaderOutput MainVS(VertexShaderInput IN)
+VertexShaderOutput MainVS(VertexShaderInput IN, uint instanceId : SV_InstanceID)
 {
     VertexShaderOutput OUT;
-    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(IN.m_position, 1)).xyz;
-    float4 clipPosition = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
+    float4x4 objectToWorld = GetObjectToWorldMatrix(instanceId);
+    float4 worldPosition4 = mul(objectToWorld, float4(IN.m_position, 1));
+    float3 worldPosition = worldPosition4.xyz;
+    float4 clipPosition = mul(ViewSrg::m_viewProjectionMatrix, worldPosition4);
     
     if (PSXColorSrg::m_jitterStrength > 0.0)
     {
@@ -87,7 +92,8 @@ VertexShaderOutput MainVS(VertexShaderInput IN)
     OUT.m_clipW    = clipPosition.w;
     OUT.m_uvPersp  = IN.m_uv;
     OUT.m_uvAffine = IN.m_uv;
-    float3 wn = mul((float3x3)ObjectSrg::GetWorldMatrix(), IN.m_normal);
+    float3x3 objectToWorldIT = GetObjectToWorldMatrixInverseTranspose(instanceId);
+    float3 wn = mul(objectToWorldIT, IN.m_normal);
     OUT.m_worldNormal = normalize(wn);
     OUT.m_worldPos = worldPosition;
     
@@ -201,13 +207,13 @@ ForwardPassOutput MainPS(VertexShaderOutput IN)
     surface.SetAlbedoAndSpecularF0(base, 0.0, surface.metallic);
 
     LightingData lightingData;
-#if ENABLE_LIGHT_CULLING
-    lightingData.tileIterator.Init(IN.m_position, PassSrg::m_lightListRemapped, PassSrg::m_tileLightData);
-#else
-    lightingData.tileIterator.InitNoCulling();
-#endif
-    lightingData.Init(surface.position, surface.GetDefaultNormal(), surface.roughnessLinear, ViewSrg::m_worldPosition);
-    lightingData.lightingChannels = ObjectSrg::m_lightingChannelMask;
+    float3 viewPositions[MAX_SHADING_VIEWS];
+    [unroll]
+    for (uint viewIndex = 0; viewIndex < MAX_SHADING_VIEWS; ++viewIndex)
+    {
+        viewPositions[viewIndex] = ViewSrg::m_worldPosition.xyz;
+    }
+    lightingData.Init(surface.position, surface.GetDefaultNormal(), surface.roughnessLinear, viewPositions);
     
     lightingData.diffuseResponse = 1.0;
     lightingData.specularResponse = 0.0;
