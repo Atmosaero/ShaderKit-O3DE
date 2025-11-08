@@ -1,14 +1,14 @@
 #pragma once
 
-#include <viewsrg.srgi>
+#include <scenesrg_all.srgi>
+#include <viewsrg_all.srgi>
 #include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/InstancedTransforms.azsli>
 #include <Atom/Features/Pipeline/Forward/ForwardPassOutput.azsli>
 #include <Atom/Features/SrgSemantics.azsli>
-#include <scenesrg.srgi>
 
-partial ShaderResourceGroup ViewSrg : SRG_PerView
+ShaderResourceGroup WaterDrawSrg : SRG_PerDraw
 {
-    float4x4 m_viewProjectionMatrix;
 }
 
 ShaderResourceGroup WaterColorSrg : SRG_PerMaterial
@@ -260,7 +260,7 @@ float getFoamIntensity(float2 uv, float3 cdir, float time)
     return max(foam1, foam2);
 }
 
-VertexShaderOutput MainVS(VertexShaderInput IN)
+VertexShaderOutput MainVS(VertexShaderInput IN, uint instanceId : SV_InstanceID)
 {
     VertexShaderOutput OUT;
     
@@ -273,7 +273,8 @@ VertexShaderOutput MainVS(VertexShaderInput IN)
     // Apply displacement
     float3 displacedPosition = IN.m_position + displacement;
     
-    float3 worldPosition = mul(ObjectSrg::GetWorldMatrix(), float4(displacedPosition, 1)).xyz;
+    float4x4 objectToWorld = GetObjectToWorldMatrix(instanceId);
+    float3 worldPosition = mul(objectToWorld, float4(displacedPosition, 1)).xyz;
     OUT.m_position = mul(ViewSrg::m_viewProjectionMatrix, float4(worldPosition, 1.0));
     OUT.m_uv = IN.m_uv;
     return OUT;
