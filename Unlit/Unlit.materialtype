@@ -27,6 +27,15 @@
                         "type": "ShaderInput",
                         "id": "m_unlitColor"
                     }
+                },
+                {
+                    "id": "baseColorTexture",
+                    "displayName": "Base Color Texture",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_baseColorTexture"
+                    }
                 }
             ]
         }
