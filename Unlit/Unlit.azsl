@@ -14,16 +14,34 @@ ShaderResourceGroup UnlitDrawSrg : SRG_PerDraw
 ShaderResourceGroup UnlitColorSrg : SRG_PerMaterial
 {
     float3 m_unlitColor;
+    Texture2D m_baseColorTexture;
+    Sampler m_baseColorSampler
+    {
+        MaxAnisotropy = 1;
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+        ReductionType = Filter;
+        AddressU = Wrap;
+        AddressV = Wrap;
+        AddressW = Wrap;
+        MinLOD = 0.000000;
+        MaxLOD = 15.000000;
+        MipLODBias = 0.000000;
+        BorderColor = TransparentBlack;
+    };
 }
 
 struct VertexShaderInput
 {
     float3 m_position : POSITION;
+    float2 m_uv : UV0;
 };
 
 struct VertexShaderOutput
 {
     float4 m_position : SV_Position;
+    float2 m_uv : TEXCOORD0;
 };
 
 VertexShaderOutput MainVS(VertexShaderInput IN, uint instanceId : SV_InstanceID)
@@ -32,6 +50,7 @@ VertexShaderOutput MainVS(VertexShaderInput IN, uint instanceId : SV_InstanceID)
     float4x4 objectToWorld = GetObjectToWorldMatrix(instanceId);
     float4 worldPosition = mul(objectToWorld, float4(IN.m_position, 1.0));
     OUT.m_position = mul(ViewSrg::m_viewProjectionMatrix, worldPosition);
+    OUT.m_uv = IN.m_uv;
     return OUT;
 }
 
@@ -39,7 +58,14 @@ ForwardPassOutput MainPS(VertexShaderOutput IN)
 {
     ForwardPassOutput OUT;
 
-    OUT.m_diffuseColor = float4(UnlitColorSrg::m_unlitColor, -1.0); 
+    float3 baseColor = UnlitColorSrg::m_unlitColor;
+    float4 tex = UnlitColorSrg::m_baseColorTexture.Sample(UnlitColorSrg::m_baseColorSampler, IN.m_uv);
+    if (tex.a > 0.0)
+    {
+        baseColor = tex.rgb * UnlitColorSrg::m_unlitColor;
+    }
+
+    OUT.m_diffuseColor = float4(baseColor, -1.0); 
     OUT.m_specularColor = float4(0.0, 0.0, 0.0, 0.0); 
 
     return OUT;
