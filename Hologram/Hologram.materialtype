@@ -1,0 +1,301 @@
+{
+    "description": "Animated additive unlit hologram material.",
+    "version": 4,
+    "versionUpdates": [
+        {
+            "toVersion": 4,
+            "actions": [
+                { "op": "setValue", "name": "animation.updateRate", "value": 24.0 }
+            ]
+        }
+    ],
+    "shaders": [
+        {
+            "file": "./Hologram.shader",
+            "tag": "transparent"
+        }
+    ],
+    "propertyLayout": {
+        "groups": [
+            {
+                "id": "base",
+                "displayName": "Base"
+            },
+            {
+                "id": "animation",
+                "displayName": "Animation"
+            },
+            {
+                "id": "wipe",
+                "displayName": "Wipe"
+            },
+            {
+                "id": "signal",
+                "displayName": "Signal"
+            },
+            {
+                "id": "noise",
+                "displayName": "Noise"
+            },
+            {
+                "id": "displacement",
+                "displayName": "Displacement"
+            },
+            {
+                "id": "flicker",
+                "displayName": "Flicker"
+            }
+        ],
+        "properties": {
+            "base": [
+                {
+                    "id": "primaryColor",
+                    "displayName": "Primary Color",
+                    "type": "Color",
+                    "defaultValue": [1.0, 0.0, 0.0],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_primaryColor"
+                    }
+                },
+                {
+                    "id": "secondaryColor",
+                    "displayName": "Secondary Color",
+                    "type": "Color",
+                    "defaultValue": [1.0, 0.0, 0.0],
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_secondaryColor"
+                    }
+                },
+                {
+                    "id": "density",
+                    "displayName": "Density",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 8.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_density"
+                    }
+                },
+                {
+                    "id": "effectStrength",
+                    "displayName": "Effect Strength",
+                    "type": "Float",
+                    "defaultValue": 2.0,
+                    "min": 0.0,
+                    "max": 8.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_effectStrength"
+                    }
+                },
+                {
+                    "id": "opacity",
+                    "displayName": "Opacity",
+                    "description": "Overall hologram intensity. This also fades additive color output.",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_opacity"
+                    }
+                }
+            ],
+            "animation": [
+                {
+                    "id": "updateRate",
+                    "displayName": "Animation Update Rate",
+                    "description": "Number of discrete animation updates per second.",
+                    "type": "Float",
+                    "defaultValue": 24.0,
+                    "min": 1.0,
+                    "max": 60.0,
+                    "step": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_animationUpdateRate"
+                    }
+                }
+            ],
+            "wipe": [
+                {
+                    "id": "scale",
+                    "displayName": "Scale",
+                    "type": "Float",
+                    "defaultValue": 3.0,
+                    "min": 0.0,
+                    "max": 16.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_wipeScale"
+                    }
+                },
+                {
+                    "id": "speed",
+                    "displayName": "Speed",
+                    "type": "Float",
+                    "defaultValue": 0.5,
+                    "min": 0.0,
+                    "max": 8.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_wipeSpeed"
+                    }
+                },
+                {
+                    "id": "blend",
+                    "displayName": "Blend",
+                    "type": "Float",
+                    "defaultValue": 0.7,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_wipeBlend"
+                    }
+                }
+            ],
+            "signal": [
+                {
+                    "id": "scale",
+                    "displayName": "Scale",
+                    "type": "Float",
+                    "defaultValue": 40.0,
+                    "min": 0.0,
+                    "max": 128.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_signalScale"
+                    }
+                },
+                {
+                    "id": "speed",
+                    "displayName": "Speed",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 16.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_signalSpeed"
+                    }
+                },
+                {
+                    "id": "randomScale",
+                    "displayName": "Random Scale",
+                    "type": "Float",
+                    "defaultValue": 0.3,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_signalRandomScale"
+                    }
+                },
+                {
+                    "id": "blend",
+                    "displayName": "Blend",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_signalBlend"
+                    }
+                }
+            ],
+            "noise": [
+                {
+                    "id": "texture",
+                    "displayName": "Texture",
+                    "description": "Optional tiling noise texture. Procedural noise is used when disabled.",
+                    "type": "Image",
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_noiseTexture"
+                    }
+                },
+                {
+                    "id": "useTexture",
+                    "displayName": "Use Texture",
+                    "type": "Bool",
+                    "defaultValue": false,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_useNoiseTexture"
+                    }
+                },
+                {
+                    "id": "distortAmount",
+                    "displayName": "Distort Amount",
+                    "type": "Float",
+                    "defaultValue": 0.1,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_noiseDistortAmount"
+                    }
+                },
+                {
+                    "id": "amount",
+                    "displayName": "Amount",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_noiseAmount"
+                    }
+                }
+            ],
+            "displacement": [
+                {
+                    "id": "amount",
+                    "displayName": "Amount",
+                    "type": "Float",
+                    "defaultValue": 1.0,
+                    "min": 0.0,
+                    "max": 2.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_displacementAmount"
+                    }
+                }
+            ],
+            "flicker": [
+                {
+                    "id": "amount",
+                    "displayName": "Amount",
+                    "type": "Float",
+                    "defaultValue": 0.3,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_flickerAmount"
+                    }
+                },
+                {
+                    "id": "speed",
+                    "displayName": "Speed",
+                    "type": "Float",
+                    "defaultValue": 10.0,
+                    "min": 0.0,
+                    "max": 30.0,
+                    "connection": {
+                        "type": "ShaderInput",
+                        "id": "m_flickerSpeed"
+                    }
+                }
+            ]
+        }
+    }
+}

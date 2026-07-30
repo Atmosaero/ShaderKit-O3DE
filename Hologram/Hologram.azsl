@@ -1,0 +1,283 @@
+#pragma once
+
+#include <scenesrg_all.srgi>
+#include <viewsrg_all.srgi>
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/InstancedTransforms.azsli>
+#include <Atom/Features/Pipeline/Forward/ForwardPassSrg.azsli>
+#include <Atom/RPI/ShaderResourceGroups/UnusedFallbackDrawSrg.azsli>
+
+ShaderResourceGroup HologramSrg : SRG_PerMaterial
+{
+    float3 m_primaryColor;
+    float m_density;
+
+    float3 m_secondaryColor;
+    float m_effectStrength;
+
+    float m_opacity;
+    float m_wipeScale;
+    float m_wipeSpeed;
+    float m_wipeBlend;
+
+    float m_signalScale;
+    float m_signalSpeed;
+    float m_signalRandomScale;
+    float m_signalBlend;
+
+    Texture2D<float4> m_noiseTexture;
+    Sampler m_noiseSampler
+    {
+        AddressU = Wrap;
+        AddressV = Wrap;
+        MinFilter = Linear;
+        MagFilter = Linear;
+        MipFilter = Linear;
+    };
+    bool m_useNoiseTexture;
+    float m_noiseDistortAmount;
+    float m_noiseAmount;
+
+    float m_displacementAmount;
+    float m_flickerAmount;
+    float m_flickerSpeed;
+    float m_animationUpdateRate;
+}
+
+struct VertexShaderInput
+{
+    float3 m_position : POSITION;
+    float3 m_normal : NORMAL;
+};
+
+struct VertexShaderOutput
+{
+    float4 m_position : SV_Position;
+    float3 m_localPosition : TEXCOORD0;
+    float3 m_worldPosition : TEXCOORD1;
+    float3 m_worldNormal : TEXCOORD2;
+};
+
+struct HologramOutput
+{
+    float4 m_color : SV_Target0;
+};
+
+static const float HologramPi = 3.14159265359;
+
+float Overlay(float baseValue, float blendValue)
+{
+    return baseValue < 0.5
+        ? 2.0 * baseValue * blendValue
+        : 1.0 - 2.0 * (1.0 - baseValue) * (1.0 - blendValue);
+}
+
+float2 Overlay(float2 baseValue, float2 blendValue)
+{
+    float2 lowResult = 2.0 * baseValue * blendValue;
+    float2 highResult =
+        1.0 - 2.0 * (1.0 - baseValue) * (1.0 - blendValue);
+    return lerp(lowResult, highResult, step(0.5, baseValue));
+}
+
+float RandomSigned(float2 value)
+{
+    float seed = dot(value, float2(127.1, 311.7));
+    return -1.0 + 2.0 * frac(sin(seed) * 43758.5453123);
+}
+
+float Random01(float2 value)
+{
+    return RandomSigned(value) * 0.5 + 0.5;
+}
+
+float GetAnimationTime(float time)
+{
+    float updateRate = max(HologramSrg::m_animationUpdateRate, 1.0);
+    return floor(time * updateRate) / updateRate;
+}
+
+float SampleWipe(float localHeight, float time, float offset)
+{
+    return 1.0 - frac(
+        localHeight * HologramSrg::m_wipeScale +
+        time * HologramSrg::m_wipeSpeed +
+        offset);
+}
+
+float SampleProceduralNoise(float2 coordinates)
+{
+    float2 cell = floor(coordinates);
+    float2 fractionValue = frac(coordinates);
+    float2 smoothValue =
+        fractionValue * fractionValue * (3.0 - 2.0 * fractionValue);
+
+    float bottom = lerp(
+        Random01(cell),
+        Random01(cell + float2(1.0, 0.0)),
+        smoothValue.x);
+    float top = lerp(
+        Random01(cell + float2(0.0, 1.0)),
+        Random01(cell + float2(1.0, 1.0)),
+        smoothValue.x);
+
+    return lerp(bottom, top, smoothValue.y);
+}
+
+float SampleNoise(float2 coordinates)
+{
+    if (HologramSrg::m_useNoiseTexture)
+    {
+        return HologramSrg::m_noiseTexture.Sample(
+            HologramSrg::m_noiseSampler,
+            coordinates).r;
+    }
+
+    return SampleProceduralNoise(coordinates * 4.0);
+}
+
+float GetLinearSceneDepth(float2 pixelPosition)
+{
+    float sceneDepth =
+        PassSrg::m_linearDepthTexture.Load(int3(int2(pixelPosition), 0));
+
+    if (PassSrg::m_isOriginalDepth != 0)
+    {
+        sceneDepth = abs(
+            ViewSrg::GetFarZTimesNearZ() /
+            (ViewSrg::GetFarZMinusNearZ() * sceneDepth -
+                ViewSrg::GetFarZ()));
+    }
+
+    return sceneDepth;
+}
+
+VertexShaderOutput MainVS(
+    VertexShaderInput IN,
+    uint instanceId : SV_InstanceID)
+{
+    VertexShaderOutput OUT;
+
+    float time = GetAnimationTime(SceneSrg::m_time);
+    float displacementNoise = RandomSigned(
+        IN.m_position.xz * IN.m_position.xy + time);
+
+    float3 displacedPosition =
+        IN.m_position +
+        IN.m_normal *
+        displacementNoise *
+        0.05 *
+        HologramSrg::m_displacementAmount;
+
+    float4x4 objectToWorld = GetObjectToWorldMatrix(instanceId);
+    float4 worldPosition =
+        mul(objectToWorld, float4(displacedPosition, 1.0));
+
+    OUT.m_position =
+        mul(ViewSrg::m_viewProjectionMatrix, worldPosition);
+    OUT.m_localPosition = displacedPosition;
+    OUT.m_worldPosition = worldPosition.xyz;
+    OUT.m_worldNormal = normalize(
+        mul(
+            GetObjectToWorldMatrixInverseTranspose(instanceId),
+            IN.m_normal));
+
+    return OUT;
+}
+
+HologramOutput MainPS(
+    VertexShaderOutput IN,
+    bool isFrontFace : SV_IsFrontFace)
+{
+    HologramOutput OUT;
+
+    float time = GetAnimationTime(SceneSrg::m_time);
+
+    float flickerModulator = cos(time * HologramPi * 2.0);
+    float flicker =
+        sin(time * HologramSrg::m_flickerSpeed + flickerModulator) *
+        0.5 + 0.5;
+    flicker = floor(flicker * 4.0) / 3.0;
+    flicker = 1.0 - flicker * HologramSrg::m_flickerAmount;
+
+    float fragmentDepth = abs(
+        mul(
+            ViewSrg::m_viewMatrix,
+            float4(IN.m_worldPosition, 1.0)).z);
+    float sceneDepth = GetLinearSceneDepth(IN.m_position.xy);
+    float depthSpan = max(sceneDepth - fragmentDepth, 0.0);
+    float volumeDensity = saturate(
+        depthSpan * max(HologramSrg::m_density, 0.0));
+    float baseIntensity =
+        lerp(0.2, 1.0, volumeDensity) * flicker * 0.6;
+
+
+    float noiseXY = SampleNoise(
+        IN.m_localPosition.xy + time);
+    float noiseZY = SampleNoise(
+        IN.m_localPosition.zy + time);
+
+    float2 checkerPosition = Overlay(
+        floor(IN.m_localPosition.xy * 2.0 + time) / 3.0,
+        floor(IN.m_localPosition.zy * 2.0 - time) / 3.0);
+    float checker =
+        1.0 +
+        (frac(dot(checkerPosition, float2(1.0, 1.0))) * 2.0 - 1.0) *
+        HologramSrg::m_signalRandomScale;
+
+    float noiseXYZ = lerp(
+        1.0,
+        Overlay(noiseXY, noiseZY),
+        HologramSrg::m_noiseAmount);
+    float steppedNoise = step(noiseXYZ, 0.9);
+
+    float scan = SampleWipe(
+        IN.m_localPosition.z,
+        time,
+        steppedNoise * HologramSrg::m_noiseDistortAmount);
+    float signal = pow(
+        abs(
+            frac(
+                IN.m_localPosition.z *
+                checker *
+                HologramSrg::m_signalScale -
+                time * HologramSrg::m_signalSpeed) *
+            2.0 - 1.0),
+        0.5);
+
+    float3 normal = normalize(IN.m_worldNormal);
+    float3 directionToCamera = normalize(
+        ViewSrg::m_worldPosition - IN.m_worldPosition);
+    float facing = isFrontFace
+        ? saturate(dot(normal, directionToCamera))
+        : saturate(dot(-normal, directionToCamera));
+
+    float highlight = pow(facing, 4.0);
+    highlight = lerp(
+        highlight,
+        highlight / (signal + 0.1),
+        HologramSrg::m_signalBlend);
+    highlight *= lerp(
+        1.0,
+        scan,
+        HologramSrg::m_wipeBlend);
+
+    highlight *= noiseXYZ;
+
+    float3 color =
+        HologramSrg::m_primaryColor * baseIntensity;
+
+    if (isFrontFace)
+    {
+        color +=
+            HologramSrg::m_secondaryColor *
+            HologramSrg::m_effectStrength *
+            highlight;
+    }
+
+    float opacity = saturate(HologramSrg::m_opacity);
+    OUT.m_color = float4(
+        max(color, 0.0) * opacity,
+        saturate(baseIntensity + highlight) * opacity);
+    return OUT;
+}

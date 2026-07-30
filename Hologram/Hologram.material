@@ -1,0 +1,28 @@
+{
+    "materialType": "Hologram.materialtype",
+    "materialTypeVersion": 4,
+    "propertyValues": {
+        "animation.updateRate": 60.0,
+        "base.effectStrength": 1.0,
+        "base.primaryColor": [
+            0.0,
+            0.15034714341163635,
+            0.18103303015232086,
+            1.0
+        ],
+        "base.secondaryColor": [
+            0.057984285056591034,
+            0.23097582161426544,
+            0.26434728503227234,
+            1.0
+        ],
+        "displacement.amount": 0.5,
+        "flicker.speed": 1.0,
+        "noise.distortAmount": 0.23999999463558197,
+        "signal.randomScale": 0.25,
+        "signal.scale": 1.0,
+        "wipe.blend": 0.3499999940395355,
+        "wipe.scale": 1.0,
+        "wipe.speed": 1.0
+    }
+}
