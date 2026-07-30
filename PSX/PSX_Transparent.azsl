@@ -1,0 +1,2 @@
+#define PSX_TRANSPARENT_PASS 1
+#include "PSX.azsl"

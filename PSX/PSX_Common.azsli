@@ -1,0 +1,72 @@
+#pragma once
+
+#include <scenesrg_all.srgi>
+#include <viewsrg_all.srgi>
+#include <Atom/Features/PBR/DefaultObjectSrg.azsli>
+#include <Atom/Features/InstancedTransforms.azsli>
+#include <Atom/RPI/ShaderResourceGroups/UnusedFallbackDrawSrg.azsli>
+
+ShaderResourceGroup PSXColorSrg : SRG_PerMaterial
+{
+    float3 m_psxColor;
+    float m_baseColorFactor;
+
+    float m_jitterStrength;
+    float m_uvPixelization;
+    float m_affineStrength;
+    float m_ditherStrength;
+
+    float m_ditherGamma;
+    bool m_affineTextureMapping;
+    uint m_baseColorMapUvIndex;
+    float m_padding;
+
+    float4 m_uvMatrixRow0;
+    float4 m_uvMatrixRow1;
+    float4 m_uvMatrixRow2;
+    float4 m_uvMatrixInverseRow0;
+    float4 m_uvMatrixInverseRow1;
+    float4 m_uvMatrixInverseRow2;
+
+    Texture2D<float4> m_baseColor;
+    Sampler m_baseColorSampler
+    {
+        MaxAnisotropy = 1;
+        MinFilter = Point;
+        MagFilter = Point;
+        MipFilter = Point;
+        ReductionType = Filter;
+        AddressU = Wrap;
+        AddressV = Wrap;
+        AddressW = Wrap;
+        MinLOD = 0.0;
+        MaxLOD = 15.0;
+        MipLODBias = 0.0;
+        BorderColor = TransparentBlack;
+    };
+}
+
+float2 TransformPsxUv0(float2 uv)
+{
+    const float3 uvHomogeneous = float3(uv, 1.0);
+    return float2(
+        dot(PSXColorSrg::m_uvMatrixRow0.xyz, uvHomogeneous),
+        dot(PSXColorSrg::m_uvMatrixRow1.xyz, uvHomogeneous));
+}
+
+float4 ApplyPsxVertexSnapping(float4 clipPosition)
+{
+    const float strength = saturate(PSXColorSrg::m_jitterStrength);
+    if (strength <= 0.0)
+    {
+        return clipPosition;
+    }
+
+    const float safeW = abs(clipPosition.w) > 1e-5 ? clipPosition.w : 1e-5;
+    float2 ndcPosition = clipPosition.xy / safeW;
+    const float gridResolution = lerp(1024.0, 64.0, strength);
+
+    ndcPosition = round(ndcPosition * gridResolution) / gridResolution;
+    clipPosition.xy = ndcPosition * safeW;
+    return clipPosition;
+}

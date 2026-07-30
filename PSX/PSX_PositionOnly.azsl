@@ -1,0 +1,25 @@
+#pragma once
+
+#include "PSX_Common.azsli"
+
+struct VertexShaderInput
+{
+    float3 m_position : POSITION;
+};
+
+struct VertexShaderOutput
+{
+    precise float4 m_position : SV_Position;
+};
+
+VertexShaderOutput MainVS(VertexShaderInput IN, uint instanceId : SV_InstanceID)
+{
+    VertexShaderOutput OUT;
+    const float4 worldPosition = mul(
+        GetObjectToWorldMatrix(instanceId),
+        float4(IN.m_position, 1.0));
+
+    OUT.m_position = ApplyPsxVertexSnapping(
+        mul(ViewSrg::m_viewProjectionMatrix, worldPosition));
+    return OUT;
+}

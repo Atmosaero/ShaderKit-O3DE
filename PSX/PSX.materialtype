@@ -1,158 +1,268 @@
 {
-  "description": "PSX-style material.",
-  "version": 3,
-  "shaders": [
-    { "file": "./PSX.shader" },
-    { "file": "./PSX_Depth.shader" },
-    { "file": "./PSX_Shadow.shader" }
-  ],
-  "propertyLayout": {
-    "groups": [
-      { "id": "basicSettings", "displayName": "Basic Settings" },
-      { "id": "textures", "displayName": "Textures" },
-      { "id": "dither", "displayName": "Dithering" },
-      { "id": "lighting", "displayName": "Lighting" }
+    "description": "PSX-style material with per-vertex lighting and explicit opacity mode.",
+    "version": 6,
+    "versionUpdates": [
+        {
+            "toVersion": 4,
+            "actions": [
+                { "op": "rename", "from": "basicSettings.color", "to": "baseColor.color" },
+                { "op": "rename", "from": "textures.baseColorTexture", "to": "baseColor.textureMap" },
+                { "op": "rename", "from": "basicSettings.uvPixelization", "to": "baseColor.uvPixelization" },
+                { "op": "rename", "from": "basicSettings.jitterStrength", "to": "psx.jitterStrength" },
+                { "op": "rename", "from": "basicSettings.affineTextureMapping", "to": "psx.affineTextureMapping" },
+                { "op": "rename", "from": "basicSettings.affineStrength", "to": "psx.affineStrength" },
+                { "op": "rename", "from": "lighting.enableShadows", "to": "general.castShadows" },
+                { "op": "setValue", "name": "opacity.mode", "value": "Opaque" },
+                { "op": "setValue", "name": "general.doubleSided", "value": false }
+            ]
+        },
+        {
+            "toVersion": 5,
+            "actions": [
+                { "op": "rename", "from": "psx.affineTextureMapping", "to": "baseColor.affineTextureMapping" },
+                { "op": "rename", "from": "psx.affineStrength", "to": "baseColor.affineStrength" },
+                { "op": "rename", "from": "lighting.receiveShadows", "to": "general.receiveShadows" },
+                { "op": "rename", "from": "lighting.enableDirectionalLights", "to": "general.enableDirectionalLights" },
+                { "op": "rename", "from": "lighting.enablePunctualLights", "to": "general.enablePunctualLights" },
+                { "op": "rename", "from": "lighting.enableAreaLights", "to": "general.enableAreaLights" },
+                { "op": "rename", "from": "lighting.enableIBL", "to": "general.enableIBL" },
+                { "op": "setValue", "name": "baseColor.factor", "value": 1.0 },
+                { "op": "setValue", "name": "baseColor.textureBlendMode", "value": "Multiply" }
+            ]
+        },
+        {
+            "toVersion": 6,
+            "actions": [
+                { "op": "setValue", "name": "baseColor.textureMapUv", "value": "Tiled" }
+            ]
+        }
     ],
-    "properties": {
-      "basicSettings": [
+    "propertyLayout": {
+        "propertyGroups": [
+            {
+                "name": "baseColor",
+                "displayName": "Base Color",
+                "description": "Properties for configuring the surface color and its texture.",
+                "properties": [
+                    {
+                        "name": "color",
+                        "displayName": "Color",
+                        "description": "Color is displayed as sRGB but stored as linear color.",
+                        "type": "Color",
+                        "defaultValue": [ 1.0, 1.0, 1.0 ],
+                        "connection": { "type": "ShaderInput", "name": "m_psxColor" }
+                    },
+                    {
+                        "name": "factor",
+                        "displayName": "Factor",
+                        "description": "Factor for blending Color and Texture. Without a texture, it scales Color.",
+                        "type": "Float",
+                        "defaultValue": 1.0,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "connection": { "type": "ShaderInput", "name": "m_baseColorFactor" }
+                    },
+                    {
+                        "name": "textureMap",
+                        "displayName": "Texture",
+                        "description": "Base color texture map.",
+                        "type": "Image",
+                        "connection": { "type": "ShaderInput", "name": "m_baseColor" }
+                    },
+                    {
+                        "name": "useTexture",
+                        "displayName": "Use Texture",
+                        "description": "Whether to use the base color texture.",
+                        "type": "Bool",
+                        "defaultValue": true
+                    },
+                    {
+                        "name": "textureMapUv",
+                        "displayName": "UV",
+                        "description": "Base color map UV set.",
+                        "type": "Enum",
+                        "enumIsUv": true,
+                        "defaultValue": "Tiled",
+                        "connection": { "type": "ShaderInput", "name": "m_baseColorMapUvIndex" }
+                    },
+                    {
+                        "name": "textureBlendMode",
+                        "displayName": "Texture Blend Mode",
+                        "description": "Selects the equation used to combine Color, Factor, and Texture.",
+                        "type": "Enum",
+                        "enumValues": [ "Multiply", "LinearLight", "Lerp", "Overlay" ],
+                        "defaultValue": "Multiply",
+                        "connection": { "type": "ShaderOption", "name": "o_baseColorTextureBlendMode" }
+                    },
+                    {
+                        "name": "uvPixelization",
+                        "displayName": "UV Pixelization",
+                        "type": "Float",
+                        "defaultValue": 0.0,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "connection": { "type": "ShaderInput", "name": "m_uvPixelization" }
+                    },
+                    {
+                        "name": "affineTextureMapping",
+                        "displayName": "Affine Texture Mapping",
+                        "type": "Bool",
+                        "defaultValue": false,
+                        "connection": { "type": "ShaderInput", "name": "m_affineTextureMapping" }
+                    },
+                    {
+                        "name": "affineStrength",
+                        "displayName": "Affine Strength",
+                        "type": "Float",
+                        "defaultValue": 0.5,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "connection": { "type": "ShaderInput", "name": "m_affineStrength" }
+                    }
+                ],
+                "functors": [
+                    {
+                        "type": "UseTexture",
+                        "args": {
+                            "textureProperty": "textureMap",
+                            "useTextureProperty": "useTexture",
+                            "dependentProperties": [ "textureMapUv", "textureBlendMode", "uvPixelization", "affineTextureMapping", "affineStrength" ],
+                            "shaderOption": "o_baseColor_useTexture"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "opacity",
+                "displayName": "Opacity",
+                "description": "Properties for configuring texture-alpha blending.",
+                "properties": [
+                    {
+                        "name": "mode",
+                        "displayName": "Opacity Mode",
+                        "description": "Selects an opaque or texture-alpha blended rendering path.",
+                        "type": "Enum",
+                        "enumValues": [ "Opaque", "Blended" ],
+                        "defaultValue": "Opaque"
+                    }
+                ]
+            },
+            { "$import": "MaterialInputs/UvPropertyGroup.json" },
+            {
+                "name": "psx",
+                "displayName": "PSX Settings",
+                "properties": [
+                    {
+                        "name": "jitterStrength",
+                        "displayName": "Vertex Snapping",
+                        "type": "Float",
+                        "defaultValue": 0.0,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "connection": { "type": "ShaderInput", "name": "m_jitterStrength" }
+                    }
+                ]
+            },            {
+                "name": "dither",
+                "displayName": "Dithering",
+                "properties": [
+                    {
+                        "name": "ditherStrength",
+                        "displayName": "Dither Strength",
+                        "type": "Float",
+                        "defaultValue": 0.0,
+                        "min": 0.0,
+                        "max": 2.0,
+                        "connection": { "type": "ShaderInput", "name": "m_ditherStrength" }
+                    },
+                    {
+                        "name": "ditherGamma",
+                        "displayName": "Dither Gamma",
+                        "type": "Float",
+                        "defaultValue": 2.2,
+                        "min": 0.5,
+                        "max": 3.0,
+                        "connection": { "type": "ShaderInput", "name": "m_ditherGamma" }
+                    }
+                ]
+            },
+            {
+                "name": "general",
+                "displayName": "General Settings",
+                "properties": [
+                    {
+                        "name": "doubleSided",
+                        "displayName": "Double-sided",
+                        "description": "Whether to render back-faces or just front-faces.",
+                        "type": "Bool",
+                        "defaultValue": false
+                    },
+                    {
+                        "name": "receiveShadows",
+                        "displayName": "Receive Shadows",
+                        "description": "Whether direct lighting is modulated by shadow maps.",
+                        "type": "Bool",
+                        "defaultValue": true,
+                        "connection": { "type": "ShaderOption", "name": "o_receiveShadows" }
+                    },
+                    {
+                        "name": "castShadows",
+                        "displayName": "Cast Shadows",
+                        "description": "Whether this opaque material contributes to shadow maps.",
+                        "type": "Bool",
+                        "defaultValue": true
+                    },
+                    {
+                        "name": "enableDirectionalLights",
+                        "displayName": "Enable Directional Lights",
+                        "type": "Bool",
+                        "defaultValue": true,
+                        "connection": { "type": "ShaderOption", "name": "o_enableDirectionalLights" }
+                    },
+                    {
+                        "name": "enablePunctualLights",
+                        "displayName": "Enable Punctual Lights",
+                        "type": "Bool",
+                        "defaultValue": true,
+                        "connection": { "type": "ShaderOption", "name": "o_enablePunctualLights" }
+                    },
+                    {
+                        "name": "enableAreaLights",
+                        "displayName": "Enable Area Lights",
+                        "type": "Bool",
+                        "defaultValue": true,
+                        "connection": { "type": "ShaderOption", "name": "o_enableAreaLights" }
+                    },
+                    {
+                        "name": "enableIBL",
+                        "displayName": "Enable IBL",
+                        "type": "Bool",
+                        "defaultValue": true,
+                        "connection": { "type": "ShaderOption", "name": "o_enableIBL" }
+                    }
+                ],
+                "functors": [
+                    {
+                        "type": "Lua",
+                        "args": { "file": "Materials/Pipelines/Common/DoubleSided.lua" }
+                    }
+                ]
+            }        ]
+    },
+    "functors": [
         {
-          "id": "color",
-          "displayName": "Color",
-          "type": "Color",
-          "defaultValue": [ 1.0, 1.0, 1.0 ],
-          "connection": { "type": "ShaderInput", "id": "m_psxColor" }
-        },
-        {
-          "id": "jitterStrength",
-          "displayName": "Vertex Snapping",
-          "type": "Float",
-          "defaultValue": 0.0,
-          "min": 0.0,
-          "max": 1.0,
-          "connection": { "type": "ShaderInput", "id": "m_jitterStrength" }
-        },
-        {
-          "id": "uvPixelization",
-          "displayName": "UV Pixelization",
-          "type": "Float",
-          "defaultValue": 0.0,
-          "min": 0.0,
-          "max": 1.0,
-          "connection": { "type": "ShaderInput", "id": "m_uvPixelization" }
-        },
-        {
-          "id": "affineTextureMapping",
-          "displayName": "Affine Texture Mapping",
-          "type": "Bool",
-          "defaultValue": false,
-          "connection": { "type": "ShaderInput", "id": "m_affineTextureMapping" }
-        },
-        {
-          "id": "affineStrength",
-          "displayName": "Affine Strength",
-          "type": "Float",
-          "defaultValue": 0.5,
-          "min": 0.0,
-          "max": 1.0,
-          "connection": { "type": "ShaderInput", "id": "m_affineStrength" }
+            "type": "Lua",
+            "args": { "file": "./PSX_OpacityState.lua" }
         }
-      ],
-      "textures": [
-        {
-          "id": "baseColorTexture",
-          "displayName": "Base Color Texture",
-          "type": "Image",
-          "connection": { "type": "ShaderInput", "id": "m_baseColor" }
-        }
-      ],
-      "dither": [
-        {
-          "id": "ditherStrength",
-          "displayName": "Dither Strength",
-          "type": "Float",
-          "defaultValue": 0.0,
-          "min": 0.0,
-          "max": 2.0,
-          "connection": { "type": "ShaderInput", "id": "m_ditherStrength" }
-        },
-        {
-          "id": "ditherGamma",
-          "displayName": "Dither Gamma",
-          "type": "Float",
-          "defaultValue": 2.2,
-          "min": 0.5,
-          "max": 3.0,
-          "connection": { "type": "ShaderInput", "id": "m_ditherGamma" }
-        }
-      ],
-      "lighting": [
-        {
-          "id": "enableShadows",
-          "displayName": "Enable Shadows",
-          "description": "Whether to use the shadow maps.",
-          "type": "Bool",
-          "defaultValue": true,
-          "connection": {
-            "type": "ShaderOption",
-            "id": "o_enableShadows"
-          }
-        },
-        {
-          "id": "receiveShadows",
-          "displayName": "Receive Shadows",
-          "description": "Whether this material should receive shadows from lights.",
-          "type": "Bool",
-          "defaultValue": true,
-          "connection": {
-            "type": "ShaderOption",
-            "id": "o_receiveShadows"
-          }
-        },
-        {
-          "id": "enableDirectionalLights",
-          "displayName": "Enable Directional Lights",
-          "description": "Whether to use directional lights.",
-          "type": "Bool",
-          "defaultValue": true,
-          "connection": {
-            "type": "ShaderOption",
-            "id": "o_enableDirectionalLights"
-          }
-        },
-        {
-          "id": "enablePunctualLights",
-          "displayName": "Enable Punctual Lights",
-          "description": "Whether to use punctual lights (Point, Spot).",
-          "type": "Bool",
-          "defaultValue": true,
-          "connection": {
-            "type": "ShaderOption",
-            "id": "o_enablePunctualLights"
-          }
-        },
-        {
-          "id": "enableAreaLights",
-          "displayName": "Enable Area Lights",
-          "description": "Whether to use area lights (Disk, Capsule, Quad, Polygon).",
-          "type": "Bool",
-          "defaultValue": true,
-          "connection": {
-            "type": "ShaderOption",
-            "id": "o_enableAreaLights"
-          }
-        },
-        {
-          "id": "enableIBL",
-          "displayName": "Enable IBL",
-          "description": "Whether to use Image Based Lighting (IBL).",
-          "type": "Bool",
-          "defaultValue": true,
-          "connection": {
-            "type": "ShaderOption",
-            "id": "o_enableIBL"
-          }
-        }
-      ]
-    }
-  }
+    ],
+    "uvNameMap": {
+        "UV0": "Tiled",
+        "UV1": "Unwrapped"
+    },
+    "shaders": [
+        { "file": "./PSX.shader", "tag": "forward" },
+        { "file": "./PSX_Depth.shader", "tag": "depth" },
+        { "file": "./PSX_Shadow.shader", "tag": "shadow" },
+        { "file": "./PSX_Transparent.shader", "tag": "transparent" }
+    ]
 }
